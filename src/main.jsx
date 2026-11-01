@@ -4,6 +4,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Search, MapPin, Compass, Layers3, Navigation, LocateFixed, Plus, Minus, Menu, X, ArrowUpRight, Building2, Info, RotateCcw, Share2, ChevronRight, Landmark, Map, Radar, Satellite, ShieldCheck, Eye, ExternalLink } from 'lucide-react';
 import './style.css';
+import Home from './Home.jsx';
 
 const CENTER=[8.0572,49.9761];
 const POIS=[
@@ -32,6 +33,7 @@ const CITY_TOUR=[
 ];
 
 function App(){
+ const [homeOpen,setHomeOpen]=useState(true);
  const mount=useRef(null),mapRef=useRef(null),markers=useRef([]),searchRef=useRef(null),lastSearch=useRef(0);
  const [style,setStyle]=useState('matrix'),[selected,setSelected]=useState('kaiserpfalz'),[query,setQuery]=useState(''),[panel,setPanel]=useState(true),[mobileMenu,setMobileMenu]=useState(false),[is3d,set3d]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[coords,setCoords]=useState(CENTER),[zoom,setZoom]=useState(14.2),[clock,setClock]=useState('');
  const [kidsMode,setKidsMode]=useState(false),[historicMode,setHistoricMode]=useState(false),[gpsCheck,setGpsCheck]=useState(false),[gpsStatus,setGpsStatus]=useState('GPS ist optional. Quiz auch ohne Standort möglich.'),[cinemaBusy,setCinemaBusy]=useState(false),[tourOpen,setTourOpen]=useState(false),[tourStep,setTourStep]=useState(0),[tourDone,setTourDone]=useState(()=>{try{return JSON.parse(localStorage.getItem('cityos_tour_done')||'[]')}catch{return []}}),[quizChoice,setQuizChoice]=useState(null),[speaking,setSpeaking]=useState(false);
@@ -63,7 +65,8 @@ function App(){
  useEffect(()=>{const id=new URLSearchParams(location.search).get('spot');if(POIS.some(p=>p.id===id)){const t=setTimeout(()=>focusPoi(id),1400);return()=>clearTimeout(t)}},[]);
  return <div className="app-shell">
   <div className="map" ref={mount}/><div className="scanlines" aria-hidden="true"/><div className="map-glow" aria-hidden="true"/>
-  <header className="topbar"><div className="brand"><div className="brand-icon"><Radar size={25}/></div><div><strong>INGELHEIM<span> / </span>CITYOS</strong><small>URBAN EXPLORATION SYSTEM <b>●</b> V1.0</small></div></div><div className="header-right"><span className="live-dot">● SYSTEM ONLINE</span><span className="clock">{clock} <small>MEZ/MESZ</small></span><button className="mobile-toggle" aria-label="Menü öffnen" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button></div></header>
+  {homeOpen&&<Home onEnter={()=>setHomeOpen(false)} onTour={()=>{setHomeOpen(false);jumpTour(0)}}/>}
+  <header className="topbar"><button className="city-back-home" title="CITYOS Startseite anzeigen" aria-label="Zur Startseite" onClick={()=>setHomeOpen(true)}>⌂ HOME</button><div className="brand"><div className="brand-icon"><Radar size={25}/></div><div><strong>INGELHEIM<span> / </span>CITYOS</strong><small>URBAN EXPLORATION SYSTEM <b>●</b> V1.0</small></div></div><div className="header-right"><span className="live-dot">● SYSTEM ONLINE</span><span className="clock">{clock} <small>MEZ/MESZ</small></span><button className="mobile-toggle" aria-label="Menü öffnen" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button></div></header>
   <aside className={'sidebar '+(mobileMenu?'show':'')}><div className="side-top"><div className="eyebrow">SYSTEM / MODUL 01</div><h1>Deine Stadt.<br/><em>Neu entdeckt.</em></h1><p>Erkunde Ingelheim in einem digitalen, interaktiven Stadtraum.</p></div>
     <form className="search" onSubmit={findPlace}><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Ort oder Adresse suchen …" aria-label="Ort suchen"/><button type="submit" disabled={busy} title="Suche starten">{busy?'…':'↵'}</button></form>
     <button className="tour-launch" onClick={()=>jumpTour(0)}>◈ &nbsp; MODUL 02 / STADTFÜHRUNG <ChevronRight size={16}/></button>
