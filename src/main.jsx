@@ -1,0 +1,65 @@
+import React, {useEffect,useMemo,useRef,useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Search, MapPin, Compass, Layers3, Navigation, LocateFixed, Plus, Minus, Menu, X, ArrowUpRight, Building2, Info, RotateCcw, Share2, ChevronRight, Landmark, Map, Radar, Satellite, ShieldCheck, Eye, ExternalLink } from 'lucide-react';
+import './style.css';
+
+const CENTER=[8.0572,49.9761];
+const POIS=[
+ {id:'kaiserpfalz',name:'Kaiserpfalz Ingelheim',tag:'Geschichte',desc:'Einstiges Zentrum kaiserlicher Macht im Frühmittelalter. Entdecke das Areal der Pfalz Karls des Großen.',pos:[8.0736,49.9782],icon:'01'},
+ {id:'burgkirche',name:'Burgkirche',tag:'Architektur',desc:'Historische Wehrkirche in Ober-Ingelheim, umgeben von eindrucksvollen Befestigungsanlagen.',pos:[8.0467,49.9743],icon:'02'},
+ {id:'bismarckturm',name:'Bismarckturm',tag:'Aussicht',desc:'Aussichtspunkt auf dem Westerberg mit Blick über Ingelheim und das Rheintal.',pos:[8.0421,49.9610],icon:'03'},
+ {id:'rhein',name:'Rheinufer Frei-Weinheim',tag:'Natur',desc:'Am Rhein spazieren, die Flusslandschaft erleben und den Horizont entdecken.',pos:[8.0295,49.9932],icon:'04'},
+ {id:'museum',name:'Museum bei der Kaiserpfalz',tag:'Kultur',desc:'Ausstellungen zur Geschichte Ingelheims und zur Kaiserpfalz.',pos:[8.0717,49.9784],icon:'05'},
+];
+const STYLE_URL='https://tiles.openfreemap.org/styles/liberty';
+const SATELLITE={version:8,sources:{sat:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,attribution:'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'}},layers:[{id:'satellite-imagery',source:'sat',type:'raster'}]};
+function addExtras(map,style){
+ if(!map.getSource('openfreemap'))map.addSource('openfreemap',{type:'vector',url:'https://tiles.openfreemap.org/planet',attribution:'© OpenStreetMap contributors · © OpenFreeMap'});
+ const firstSymbol=map.getStyle().layers?.find(l=>l.type==='symbol')?.id;
+ if(!map.getLayer('cityos-buildings'))map.addLayer({id:'cityos-buildings',type:'fill-extrusion',source:'openfreemap','source-layer':'building',minzoom:14,filter:['!=',['get','hide_3d'],true],paint:{'fill-extrusion-color':style==='matrix'?'#18c786':style==='satellite'?'#dfd9c5':'#a2b0b6','fill-extrusion-height':['interpolate',['linear'],['zoom'],14,0,15.5,['coalesce',['to-number',['get','render_height']],['to-number',['get','height']],8]],'fill-extrusion-base':['coalesce',['to-number',['get','render_min_height']],0],'fill-extrusion-opacity':style==='matrix'?.61:style==='satellite'?.65:.76}},firstSymbol);
+ if(style==='matrix'){
+  // Give the underlying street map a cinematic tint while retaining real geographic data.
+  if(!map.getLayer('matrix-veil'))map.addLayer({id:'matrix-veil',type:'background',paint:{'background-color':'#03100c','background-opacity':.18}},map.getStyle().layers?.[0]?.id);
+ }
+}
+function App(){
+ const mount=useRef(null),mapRef=useRef(null),markers=useRef([]),searchRef=useRef(null),lastSearch=useRef(0);
+ const [style,setStyle]=useState('matrix'),[selected,setSelected]=useState('kaiserpfalz'),[query,setQuery]=useState(''),[panel,setPanel]=useState(true),[mobileMenu,setMobileMenu]=useState(false),[is3d,set3d]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[coords,setCoords]=useState(CENTER),[zoom,setZoom]=useState(14.2),[clock,setClock]=useState('');
+ const active=POIS.find(p=>p.id===selected),filtered=useMemo(()=>POIS.filter(p=>(p.name+' '+p.tag).toLowerCase().includes(query.toLowerCase())),[query]);
+ useEffect(()=>{const tick=()=>setClock(new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'}).format(new Date()));tick();const t=setInterval(tick,30000);return()=>clearInterval(t)},[]);
+ useEffect(()=>{
+  const map=new maplibregl.Map({container:mount.current,style:style==='satellite'?SATELLITE:STYLE_URL,center:CENTER,zoom:14.2,pitch:57,bearing:-23,antialias:true,attributionControl:false});mapRef.current=map;
+  map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
+  map.on('moveend',()=>{setCoords([map.getCenter().lng,map.getCenter().lat]);setZoom(map.getZoom())});
+  map.on('error',e=>{console.warn('Map data:',e.error);setNotice('Ein Kartendienst konnte nicht geladen werden. Bitte Verbindung prüfen.')});
+  const onLoad=()=>{addExtras(map,'matrix');refreshMarkers(map,'kaiserpfalz')};map.on('load',onLoad);
+  return()=>{markers.current.forEach(m=>m.remove());markers.current=[];map.remove();mapRef.current=null};
+ },[]);
+ function refreshMarkers(map,highlight){markers.current.forEach(m=>m.remove());markers.current=[];POIS.forEach(p=>{const el=document.createElement('button');el.type='button';el.className='poi-marker'+(highlight===p.id?' active':'');el.innerHTML='<span>'+p.icon+'</span>';el.setAttribute('aria-label',p.name+' auf der Karte öffnen');el.addEventListener('click',()=>focusPoi(p.id));const m=new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat(p.pos).addTo(map);markers.current.push(m)})}
+ function focusPoi(id){const p=POIS.find(p=>p.id===id);if(!p)return;setSelected(id);setPanel(true);setMobileMenu(false);setQuery('');const map=mapRef.current;if(map){map.flyTo({center:p.pos,zoom:16.1,pitch:is3d?60:0,bearing:-18,duration:1300});refreshMarkers(map,id)}}
+ function changeStyle(next){const map=mapRef.current;if(!map)return;setStyle(next);const camera={center:map.getCenter(),zoom:map.getZoom(),pitch:map.getPitch(),bearing:map.getBearing()};map.setStyle(next==='satellite'?SATELLITE:STYLE_URL);map.once('style.load',()=>{addExtras(map,next);map.jumpTo(camera);refreshMarkers(map,selected)})}
+ function toggle3d(){const next=!is3d;set3d(next);mapRef.current?.easeTo({pitch:next?57:0,bearing:next?-23:0,duration:850})}
+ async function findPlace(e){e?.preventDefault();if(!query.trim())return;const hit=POIS.find(p=>p.name.toLowerCase().includes(query.trim().toLowerCase()));if(hit){focusPoi(hit.id);return}if(Date.now()-lastSearch.current<1500){setNotice('Bitte kurz zwischen zwei Suchen warten.');return}lastSearch.current=Date.now();setBusy(true);setNotice('');try{const u=new URL('https://nominatim.openstreetmap.org/search');u.searchParams.set('q',query+' Ingelheim am Rhein');u.searchParams.set('format','json');u.searchParams.set('limit','1');u.searchParams.set('countrycodes','de');const r=await fetch(u,{headers:{'Accept-Language':'de'}});if(!r.ok)throw Error();const data=await r.json();if(!data.length){setNotice('Kein Ort gefunden. Versuche einen anderen Suchbegriff.');return}const place=data[0];mapRef.current?.flyTo({center:[Number(place.lon),Number(place.lat)],zoom:16,pitch:is3d?55:0,duration:1300});setSelected(null);setPanel(false);setNotice('Suchergebnis: '+place.display_name)}catch{setNotice('Ortssuche momentan nicht verfügbar.')}finally{setBusy(false)}}
+ function locate(){if(!navigator.geolocation){setNotice('Standortbestimmung wird nicht unterstützt.');return}setNotice('Standort wird angefragt …');navigator.geolocation.getCurrentPosition(p=>{mapRef.current?.flyTo({center:[p.coords.longitude,p.coords.latitude],zoom:15.5,duration:1100});setNotice('Standort lokal auf der Karte angezeigt.')},()=>setNotice('Standortzugriff verweigert oder nicht verfügbar.'),{enableHighAccuracy:false,timeout:10000})}
+ function share(){const url=new URL(location.href);url.searchParams.set('spot',selected||'city');if(navigator.share){navigator.share({title:'INGELHEIM CITYOS',url:url.href}).catch(()=>{})}else if(navigator.clipboard){navigator.clipboard.writeText(url.href).then(()=>setNotice('Link kopiert.')).catch(()=>setNotice(url.href))}else setNotice(url.href)}
+ useEffect(()=>{const id=new URLSearchParams(location.search).get('spot');if(POIS.some(p=>p.id===id)){const t=setTimeout(()=>focusPoi(id),1400);return()=>clearTimeout(t)}},[]);
+ return <div className="app-shell">
+  <div className="map" ref={mount}/><div className="scanlines" aria-hidden="true"/><div className="map-glow" aria-hidden="true"/>
+  <header className="topbar"><div className="brand"><div className="brand-icon"><Radar size={25}/></div><div><strong>INGELHEIM<span> / </span>CITYOS</strong><small>URBAN EXPLORATION SYSTEM <b>●</b> V1.0</small></div></div><div className="header-right"><span className="live-dot">● SYSTEM ONLINE</span><span className="clock">{clock} <small>MEZ/MESZ</small></span><button className="mobile-toggle" aria-label="Menü öffnen" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button></div></header>
+  <aside className={'sidebar '+(mobileMenu?'show':'')}><div className="side-top"><div className="eyebrow">SYSTEM / MODUL 01</div><h1>Deine Stadt.<br/><em>Neu entdeckt.</em></h1><p>Erkunde Ingelheim in einem digitalen, interaktiven Stadtraum.</p></div>
+    <form className="search" onSubmit={findPlace}><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Ort oder Adresse suchen …" aria-label="Ort suchen"/><button type="submit" disabled={busy} title="Suche starten">{busy?'…':'↵'}</button></form>
+    <div className="section-title"><span>EXPLORE / ORTE</span><span>{String(filtered.length).padStart(2,'0')} OBJECTS</span></div>
+    <div className="poi-list">{filtered.map(p=><button key={p.id} onClick={()=>focusPoi(p.id)} className={'poi-list-item '+(selected===p.id?'selected':'')}><span className="poi-count">{p.icon}</span><span className="poi-txt"><b>{p.name}</b><small>{p.tag}</small></span><ChevronRight size={17}/></button>)}{!filtered.length&&<p className="muted">Kein Treffer in den Highlights. Drücke Enter für die externe Kartensuche.</p>}</div>
+    <div className="side-footer"><span className="pulse-dot"/> OPEN MAP DATA <span className="divider-dot">·</span> INOFFIZIELLES KONZEPT</div>
+  </aside>
+  <div className="map-top-tools"><span className="hud-label">VIEW / INGELHEIM AM RHEIN</span><div className="map-styles">{[['matrix',Radar,'MATRIX'],['street',Map,'STRAẞE'],['satellite',Satellite,'SATELLIT']].map(([v,Icon,label])=><button key={v} title={label} className={style===v?'on':''} onClick={()=>changeStyle(v)}><Icon size={15}/><span>{label}</span></button>)}</div></div>
+  <div className="compass-hud"><div className="compass-mark">N</div><Compass size={45} strokeWidth={1}/><small>3D CITY VIEW</small></div>
+  <div className="map-controls"><button aria-label="Vergrößern" onClick={()=>mapRef.current?.zoomIn()}><Plus/></button><button aria-label="Verkleinern" onClick={()=>mapRef.current?.zoomOut()}><Minus/></button><button aria-label="3D umschalten" className={is3d?'on':''} onClick={toggle3d}><Building2/><small>{is3d?'3D':'2D'}</small></button><button aria-label="Nach Norden ausrichten" onClick={()=>mapRef.current?.easeTo({bearing:0,duration:550})}><Navigation/></button><button aria-label="Meinen Standort anzeigen" onClick={locate}><LocateFixed/></button></div>
+  {panel&&active&&<article className="detail-card"><button className="detail-close" onClick={()=>setPanel(false)} aria-label="Details schließen"><X size={16}/></button><div className="eyebrow">POINT OF INTEREST // {active.icon}</div><div className="detail-icon"><Landmark size={21}/></div><div className="detail-category">{active.tag.toUpperCase()}</div><h2>{active.name}</h2><p>{active.desc}</p><div className="detail-links"><button onClick={()=>mapRef.current?.flyTo({center:active.pos,zoom:17,pitch:is3d?65:0,duration:800})}><Eye size={15}/> Heranzoomen</button><a href={'https://www.openstreetmap.org/?mlat='+active.pos[1]+'&mlon='+active.pos[0]+'#map=17/'+active.pos[1]+'/'+active.pos[0]} target="_blank" rel="noreferrer">OSM <ExternalLink size={13}/></a></div></article>}
+  <footer className="bottom-hud"><div className="data-pill"><span className="signal-bars">▂▄▆</span><span>LAT {coords[1].toFixed(4)} / LON {coords[0].toFixed(4)}</span></div><div className="data-pill">ZOOM {zoom.toFixed(1)} <span className="mini-separator">/</span> <span>MAPLIBRE + OSM</span></div><button className="share" onClick={share}><Share2 size={15}/> TEILEN</button></footer>
+  {notice&&<div className="toast" role="status"><Info size={16}/><span>{notice}</span><button onClick={()=>setNotice('')} aria-label="Hinweis schließen"><X size={15}/></button></div>}
+ </div>
+}
+createRoot(document.getElementById('root')).render(<App/>);
