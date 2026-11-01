@@ -1,0 +1,42 @@
+import React, {useState} from 'react';
+import {ArrowUpRight, ArrowRight, Compass, MapPinned, Clock3, CalendarDays, TrainFront, Landmark, Sparkles, Users, Menu, X, Layers3, ShieldCheck, Map, ChevronRight, Radio, Heart, Route, Zap, Globe2, Sun, Moon} from 'lucide-react';
+import './home.css';
+
+const modules=[
+ {id:'map',number:'01',icon:MapPinned,title:'Die Stadt neu sehen',category:'3D CITY EXPLORER',desc:'Entdecke Ingelheim als interaktive Karte. Drehe die Stadt, fliege zu besonderen Orten und tauche in die digitale Welt ein.',tag:'JETZT ENTDECKEN'},
+ {id:'tour',number:'02',icon:Route,title:'Geschichte erleben',category:'INTERAKTIVE MISSIONEN',desc:'Folge den Spuren Karls des Großen – mit geführten Stationen, Quizfragen und Audio-Geschichten.',tag:'MISSION STARTEN'},
+ {id:'time',number:'03',icon:Clock3,title:'Eine Reise durch die Zeit',category:'ZEITREISE',desc:'Sieh Ingelheims Geschichte mit neuen Augen. Historische Einblicke und heute sichtbare Spuren.',tag:'KONZEPT ENTDECKEN'},
+ {id:'live',number:'04',icon:Radio,title:'Deine Stadt im Blick',category:'CITY LIVE',desc:'Wetter, Kultur und Mobilität: Perspektivisch dein Einstieg für aktuelle Stadtinformationen.',tag:'VORSCHAU'},
+ {id:'family',number:'05',icon:Heart,title:'Zusammen losziehen',category:'FAMILIE & FREIZEIT',desc:'Finde Ausflugsziele, Ideen für Familien und spannende Abenteuer vor deiner Haustür.',tag:'VORSCHAU'},
+ {id:'citizen',number:'06',icon:Users,title:'Stadt gemeinsam gestalten',category:'BÜRGER & ALLTAG',desc:'Ein unkomplizierter Weg zu offiziellen Angeboten und Möglichkeiten zur Beteiligung.',tag:'VORSCHAU'}
+];
+export default function Home({onEnter,onTour}){
+ const [nav,setNav]=useState(false),[theme,setTheme]=useState('night'),[active,setActive]=useState('alle');
+ const list=active==='alle'?modules:modules.filter(x=>x.id===active);
+ const invoke=id=>{if(id==='map')onEnter();else if(id==='tour')onTour();else document.getElementById('modules')?.scrollIntoView({behavior:'smooth'})};
+ return <div className={'city-home '+(theme==='day'?'city-home-day':'')}>
+  <div className="home-grid" aria-hidden="true"/><div className="home-halo" aria-hidden="true"/>
+  <header className="home-header"><a href="#start" className="home-logo"><span className="home-logo-mark"><Layers3 size={23}/></span><span>INGELHEIM<span className="home-slash"> // </span>CITYOS <b>X</b><small>DIGITAL CITY EXPERIENCE</small></span></a>
+   <nav className={nav?'home-nav expanded':'home-nav'} aria-label="Hauptnavigation"><a href="#start" onClick={()=>setNav(false)}>Start</a><a href="#modules" onClick={()=>setNav(false)}>Entdecken</a><a href="#vision" onClick={()=>setNav(false)}>Vision</a><button onClick={onTour}>Tour starten <ArrowUpRight size={14}/></button></nav>
+   <div className="home-header-actions"><button aria-label="Farbschema umschalten" onClick={()=>setTheme(theme==='night'?'day':'night')} className="home-icon-button">{theme==='night'?<Sun size={17}/>:<Moon size={17}/>}</button><button className="home-menu-button" aria-label="Menü öffnen" onClick={()=>setNav(!nav)}>{nav?<X/>:<Menu/>}</button></div>
+  </header>
+  <main id="start">
+   <section className="home-hero">
+    <div className="hero-orbit orbit-a" aria-hidden="true"/><div className="hero-orbit orbit-b" aria-hidden="true"/>
+    <div className="home-hero-copy"><span className="home-kicker"><span className="home-led"/> SYSTEM ONLINE <span className="home-kicker-divider"/> INGELHEIM AM RHEIN</span><h1>DEINE STADT.<br/><span>DEIN UNIVERSUM.</span></h1><p>Eine Stadt. Tausend Perspektiven. Entdecke Ingelheim als interaktive Erlebniswelt – zwischen Kaiserpfalz, Rhein und Zukunft.</p><div className="home-hero-buttons"><button className="home-primary" onClick={onEnter}>3D-STADT ENTDECKEN <ArrowUpRight size={19}/></button><button className="home-secondary" onClick={onTour}><Compass size={18}/> STADTFÜHRUNG STARTEN</button></div>
+     <div className="home-hero-meta"><span><span className="home-led"/> DIGITALE STADTKARTE</span><span>49.976° N / 8.057° E</span><span>UNABHÄNGIGES KONZEPT</span></div>
+    </div>
+    <div className="home-visual" aria-label="Abstraktes digitales Stadtmodell"><div className="home-city-rings"><span/><span/><span/></div><div className="home-city-core"><div className="home-city-buildings">{Array.from({length:18},(_,i)=><i key={i} style={{'--i':i,'--h':(28+(i*37)%108)+'px'}}/>)}</div><span className="core-label"><Zap size={15}/> CITY CORE / ACTIVE</span></div><div className="home-scanline"/><span className="home-orbit-caption caption-top">URBAN DIGITAL TWIN <i>•</i> PREVIEW</span><span className="home-orbit-caption caption-bottom">EXPLORE MODE <i>01</i></span></div>
+    <a className="home-scroll" href="#modules"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
+   </section>
+   <section className="home-ticker" aria-label="Plattformfunktionen"><span>✳ INTERAKTIVE STADT</span><span>✳ 3D-MAPPING</span><span>✳ HISTORY REIMAGINED</span><span>✳ TOUR MISSIONS</span><span>✳ CITY EXPERIENCE</span></section>
+   <section id="modules" className="home-section"><div className="home-section-heading"><div><span className="home-eyebrow">01 / DEIN ZUGANG ZUR STADT</span><h2>Entdecke das <em>Unentdeckte.</em></h2><p>Sechs Wege, Ingelheim neu zu erleben. Zwei Module sind bereits als interaktive Funktionen verfügbar; weitere sind Ausbauideen.</p></div><div className="home-section-count">06 <span>MODULE</span></div></div>
+    <div className="home-filters"><button className={active==='alle'?'chosen':''} onClick={()=>setActive('alle')}>ALLE MODULE</button><button className={active==='map'?'chosen':''} onClick={()=>setActive('map')}>3D-KARTE</button><button className={active==='tour'?'chosen':''} onClick={()=>setActive('tour')}>TOUREN</button><button className={active==='live'?'chosen':''} onClick={()=>setActive('live')}>CITY LIVE</button></div>
+    <div className="home-module-grid">{list.map(m=><article className="home-module" key={m.id}><div className="home-module-top"><span>{m.number} / {m.category}</span><m.icon size={24} strokeWidth={1.4}/></div><div className="home-module-body"><h3>{m.title}</h3><p>{m.desc}</p></div><button onClick={()=>invoke(m.id)} className="home-module-cta">{m.tag} <ArrowUpRight size={17}/></button></article>)}</div>
+   </section>
+   <section className="home-feature"><div className="home-feature-art"><div className="feature-circle"><Landmark size={75} strokeWidth={.9}/></div><div className="feature-figure">800<span> N. CHR.</span></div><span className="feature-frame-tl">INGELHEIM // HISTORY</span><span className="feature-frame-br">MISSION 001</span></div><div className="home-feature-copy"><span className="home-eyebrow">02 / GESCHICHTE WIRD ERLEBNIS</span><h2>Die Vergangenheit<br/><em>ist nicht vorbei.</em></h2><p>Erkunde die Spuren der Kaiserpfalz. Folge einer interaktiven Tour, lausche Geschichten und löse Rätsel an historischen Orten.</p><button className="home-primary" onClick={onTour}>KAISERPFALZ-MISSION STARTEN <ArrowRight size={18}/></button><small>Hinweis: Historische 3D-Rekonstruktionen sind für spätere Versionen geplant.</small></div></section>
+   <section id="vision" className="home-vision"><div><span className="home-eyebrow">03 / EINE STADT, ALLE MÖGLICHKEITEN</span><h2>Mehr als eine Website.<br/><em>Ein neuer Blick auf Ingelheim.</em></h2><p>Für Bürgerinnen und Bürger, Familien und Gäste. CITYOS verbindet echte Orte mit digitaler Neugier – zugänglich im Browser, auf Smartphone und Desktop.</p><button className="home-secondary" onClick={onEnter}>ZUR INTERAKTIVEN KARTE <ArrowUpRight size={18}/></button></div><div className="home-vision-grid">{[{icon:Map,title:'Entdecken',caption:'Reale Stadt auf der Karte'},{icon:Compass,title:'Erleben',caption:'Geschichten und Missionen'},{icon:ShieldCheck,title:'Transparent',caption:'Inoffizielles Projekt'},{icon:Globe2,title:'Überall',caption:'Mobil und Desktop'}].map((x,i)=><div key={i}><x.icon size={25}/><strong>{x.title}</strong><small>{x.caption}</small></div>)}</div></section>
+  </main>
+  <footer className="home-footer"><strong>INGELHEIM // CITYOS X</strong><span>Ein unabhängiges digitales Konzept. Keine offizielle Website der Stadt Ingelheim.</span><a href="#start">NACH OBEN ↑</a></footer>
+ </div>;
+}
